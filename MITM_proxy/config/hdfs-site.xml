@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <!-- HDFS Namenode configuration -->
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>/hadoop/hdfs/namenode</value>
+    </property>
+    
+    <!-- HDFS Datanode configuration -->
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>/hadoop/hdfs/datanode</value>
+    </property>
+    
+    <!-- Replication factor -->
+    <property>
+        <name>dfs.replication</name>
+        <value>3</value>
+    </property>
+    
+    <!-- Block size -->
+    <property>
+        <name>dfs.blocksize</name>
+        <value>134217728</value> <!-- 128MB -->
+    </property>
+    
+    <!-- Enable WebHDFS -->
+    <property>
+        <name>dfs.webhdfs.enabled</name>
+        <value>true</value>
+    </property>
+    
+    <!-- Enable permissions -->
+    <property>
+        <name>dfs.permissions.enabled</name>
+        <value>true</value>
+    </property>
+    
+    <!-- Enable trash -->
+    <property>
+        <name>fs.trash.interval</name>
+        <value>1440</value> <!-- 24 hours -->
+    </property>
+</configuration> 

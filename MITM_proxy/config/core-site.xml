@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <!-- HDFS URI -->
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+    </property>
+    
+    <!-- Hadoop temporary directory -->
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>/hadoop/tmp</value>
+    </property>
+    
+    <!-- Enable WebHDFS -->
+    <property>
+        <name>hadoop.http.staticuser.user</name>
+        <value>hadoop</value>
+    </property>
+    
+    <!-- Enable trash -->
+    <property>
+        <name>fs.trash.checkpoint.interval</name>
+        <value>60</value>
+    </property>
+</configuration> 

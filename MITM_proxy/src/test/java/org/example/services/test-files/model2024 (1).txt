@@ -1,0 +1,309 @@
+Timp de lucru: 100 min
+
+Subiect MongoDB (total 4p):
+
+1. (0.2p) Inserați documentele în colecția „castles” folosind o singură comandă;
+db.castles.insertMany([
+    {
+        "castle_name": "Peleș Castle",
+        "geographical_data": {
+            "location": "Sinaia",
+            "county": "Prahova"
+        },
+        "number_of_rooms": 160,
+        "area_sq_meters": 3200,
+        "historical_significance": [
+            "Royal Residence",
+            "Architectural Landmark"
+        ]
+    },
+    {
+        "castle_name": "Corvin Castle",
+        "geographical_data": {
+            "location": "Hunedoara",
+            "county": "Hunedoara"
+        },
+        "number_of_rooms": 50,
+        "area_sq_meters": 7000,
+        "historical_significance": [
+            "Gothic Castle",
+            "Historical Landmark"
+        ]
+    },
+    {
+        "castle_name": "Bran Castle",
+        "geographical_data": {
+            "location": "Bran",
+            "county": "Brașov"
+        },
+        "number_of_rooms": 60,
+        "area_sq_meters": 4000,
+        "historical_significance": [
+            "Medieval Fortress",
+            "Tourist Attraction"
+        ]
+    },
+    {
+        "castle_name": "Făgăraș Citadel",
+        "geographical_data": {
+            "location": "Făgăraș",
+            "county": "Brașov"
+        },
+        "number_of_rooms": 70,
+        "area_sq_meters": 4500,
+        "historical_significance": [
+            "Medieval Fortress",
+            "Fortified Castle",
+            "Cultural Heritage Site"
+        ]
+    },
+    {
+        "castle_name": "Hunedoara Citadel",
+        "geographical_data": {
+            "location": "Hunedoara",
+            "county": "Hunedoara"
+        },
+        "number_of_rooms": 40,
+        "area_sq_meters": 3000,
+        "historical_significance": [
+            "Medieval Fortress",
+            "Historical Landmark"
+        ]
+    },
+    {
+        "castle_name": "Cantacuzino Castle",
+        "geographical_data": {
+            "location": "Bușteni",
+            "county": "Prahova"
+        },
+        "number_of_rooms": 30,
+        "area_sq_meters": 2500,
+        "historical_significance": [
+            "Neo-Romanian Architecture",
+            "Cultural Heritage Site"
+        ]
+    }
+])
+
+
+2. (0.4p) Afișați castelele al căror număr de camere este între 50 și 70 (inclusiv);
+db.castles.find({"number_of_rooms": {$gte:50, $lte:70}})
+
+
+3. (0.5p) Afișați castelele a căror suprafață în m^2 este < 3000 sau > 4000;
+db.castles.find({$or:[{"area_sq_meters": {$lt:3000}}, {"area_sq_meters": {$gt:4000}}]})
+
+
+4. (0.3p) Afișați toate castelele, selectând doar câmpurile „castle_name”; „number_of_rooms” și „historical_significance”, ordonate descrescător după numărul de camere;
+
+db.castles.find({}, {"castle_name": 1, "number_of_rooms": 1, "historical_significance": 1, "_id": 0}).sort({"number_of_rooms": -1})
+
+
+5. (0.7p) Actualizați castelul cu numele „Corvin Castle”, schimbându-i numărul de camere la 45 folosind o „incrementare” și adăugând în „historical_significance” valorile „Defense Fortress” și „Historical Landmark” fără a introduce duplicate;
+
+db.castles.updateOne( {"castle_name":"Corvin Castle"}, {$inc:{"number_of_rooms": -5 }, $addToSet:{"historical_significance":{$each:["Defense Fortress","Historical Landmark"]}}} )
+
+
+6. (0.5p) Ștergeți toate castelele care au în „historical_significance” valoarea „Medieval Fortress”, dar care au numărul de camere diferit de 70 și care nu au și valoarea „Tourist Attraction” în „historical_significance”;
+
+db.castles.deleteMany({$and:[{"number_of_rooms":{$ne:70}}, {"historical_significance":{$in: ["Medieval Fortress"] }}, {"historical_significance":{$nin:["Tourist Attraction"]}} ]})
+
+
+7. (0.4p) Redenumiți câmpul „castle_name” la „name” și eliminați complet câmpul „geographical_data” într-o singură comandă (pentru toate documentele);
+
+db.castles.updateMany({},{$rename:{"castle_name":"name"}, $unset:{"geographical_data": ""}})
+
+
+8. (1p) Folosind Bulk Write, realizați următoarele operații:
+	- adăugați documentele următoare în comenzi diferite:
+
+{
+    "name": "Pelisor Castle",
+    "geographical_data": {
+        "location": "Sinaia",
+        "county": "Prahova"
+    },
+    "number_of_rooms": 25,
+    "area_sq_meters": 2000,
+    "historical_significance": [
+        "Art Nouveau Architecture"
+    ]
+}
+
+{
+    "name": "Cantacuzino Castle",
+    "geographical_data": {
+        "location": "Bușteni",
+        "county": "Prahova"
+    },
+    "number_of_rooms": 30,
+    "area_sq_meters": 2500,
+    "historical_significance": [
+        "Neo-Romanian Architecture",
+    ]
+}
+
+	- actualizați castelul cu numele (actualizat „name”) „Peleș Castle” astfel încât să aibă și valoarea „Tourist Attraction” în „historical_significance”;
+  - ștergeți toate castelele care au exact două valori în „historical_significance”
+
+db.castles.bulkWrite([
+  {insertOne: 
+{
+    "name": "Pelisor Castle",
+    "geographical_data": {
+        "location": "Sinaia",
+        "county": "Prahova"
+    },
+    "number_of_rooms": 25,
+    "area_sq_meters": 2000,
+    "historical_significance": [
+        "Art Nouveau Architecture"
+    ]
+}
+},
+  {insertOne:
+{
+    "name": "Cantacuzino Castle",
+    "geographical_data": {
+        "location": "Bușteni",
+        "county": "Prahova"
+    },
+    "number_of_rooms": 30,
+    "area_sq_meters": 2500,
+    "historical_significance": [
+        "Neo-Romanian Architecture",
+    ]
+}
+},
+  {updateOne:
+  {
+"filter":{"name": "Peleș Castle"},
+"update":{$addToSet:{"historical_significance": "Tourist Attraction"}}
+}},
+  {deleteMany:
+  {
+"filter":{"historical_significance": {$size: 2}}
+}
+}
+])
+
+
+Subiect Oracle PL/SQL (total 5p):
+
+9. (1p) Creati un bloc PL/SQL care sa foloseasca o tabela de inregistrari PL/SQL pentru a pastra informatii despre angajati (tabela "emp") si clienti (tabela "customer").
+In blocul PL/SQL, printr-un cursor incarcati tabela PL/SQL cu datele din cele doua table, apoi parcurgeti tabela PL/SQL, folosind metodele tabelelor PL/SQL si afisati informatiile: id-ul clientului, numele clientului, id-ul reprezentantului de vanzari (repid), numele reprezentantului de vanzari (ename din tabela emp).
+Puteti folosi orice fel de cursor doriti.
+Hint: coloana repid din tabela customer reprezinta empno din tabela emp
+
+10. (2p) Creati o procedura care va avea doi parametri: 
+- un parametru n de intrare, numeric si 
+- un parametru c de intrare, caracter,
+care va afisa din tabelele emp si dept, nume angajat, salariu si nume departament:
+- daca al doilea parametru este ‚+’: top n cei mai bine platiti angajati din fiecare departament 
+sau 
+- daca al doilea parametru este ‚-’: top n cei mai prost platiti angajati din fiecare departament. 
+Daca departamentul are mai putin de n angajati, se va afisa in locul numelui, salariului si numelui departamentului,
+un text de forma: „Departamentul ...... are mai putin de ... angajati.”
+Tratati ca exceptie cazul in care al doilea parametru nu este + sau -.
+Puteti folosi orice fel de cursori doriti.
+
+SET SERVEROUTPUT ON SIZE UNLIMITED
+
+CREATE OR REPLACE PROCEDURE procedura
+(
+--parametrii de intrare
+    n IN NUMBER,
+    c IN CHAR
+)
+AS
+--declaratii de variabile/tipuri
+    v_empno emp.empno%TYPE;
+    v_ename emp.ename%TYPE;
+    v_sal emp.sal%TYPE;
+
+    CURSOR crs1 IS
+        SELECT empno, ename, sal
+        FROM emp
+        ORDER BY sal DESC;
+
+    CURSOR crs2 IS
+        SELECT empno, ename, sal
+        FROM emp
+        ORDER BY sal;
+BEGIN
+    IF c = '+' THEN
+    IF NOT crs1%ISOPEN THEN
+        OPEN crs1;                                         -- deschiderea cursorului 1
+    END IF;
+    
+    LOOP
+        FETCH crs1 INTO v_empno, v_ename, v_sal;           -- încarcarea datelor din cursor 1
+        EXIT WHEN crs1%ROWCOUNT > n OR crs1%NOTFOUND;      -- testarea crs1%NOTFOUND este redundanta
+        dbms_output.put_line(v_empno || ' ' || v_ename || ' ' || v_sal);
+    END LOOP;
+
+    ELSIF c = '-' THEN
+    IF NOT crs2%ISOPEN THEN
+        OPEN crs2;                                          -- deschiderea cursorului 2
+    END IF;
+
+    LOOP
+        FETCH crs2 INTO v_empno, v_ename, v_sal;            -- încarcarea datelor din cursor 2
+        EXIT WHEN crs2%ROWCOUNT > n OR crs2%NOTFOUND;       -- testarea crs2%NOTFOUND este redundanta
+        dbms_output.put_line(v_empno || ' ' || v_ename || ' ' || v_sal);
+    END LOOP;
+    ELSE
+        dbms_output.put_line('Semnul este incorect!');
+
+END IF;
+
+END procedura;
+/
+    BEGIN
+    dbms_output.put_line('Top n cei mai bine platiti angajati:');
+    procedura(7,'+');
+    dbms_output.put_line('Top n cei mai prost platiti angajati:');
+    procedura(3,'-');
+END;
+/
+
+Exemplu de afisare in cazul apelului procedurii cu parametrii: 2 si '+'
+
+KING 5000 ACCOUNTING
+CLARK 2450 ACCOUNTING
+FORD 3000 RESEARCH
+SCOTT 3000 RESEARCH
+BLAKE 2850 SALES
+ALLEN 1600 SALES
+Departamentul OPERATIONS are mai putin de 2 angajati
+
+Exemplu de afisare in cazul apelului procedurii cu parametrii: 1 si '-'
+
+MILLER 1300 ACCOUNTING
+SMITH 800 RESEARCH
+JAMES 950 SALES
+Departamentul OPERATIONS are mai putin de 1 angajati
+
+Exemplu de afisare in cazul apelului procedurii cu parametrii: 1 si 2
+
+"Al doilea parametru nu este + sau -"
+
+11. (2p) Creati un trigger care sa verifice regula de afaceri ca intr-un departament sa nu existe mai mult de 6 angajati.
+Triggerul va apela o procedura care va folosi o variabila cursor restrictiva.
+Testati regula in tabela emp. Puteti folosi urmatoarele comenzi pentru testare:
+INSERT INTO emp VALUES (9001,'x','CLERK',7788,SYSDATE,100,NULL,20,'');
+INSERT INTO emp VALUES (9002,'y','CLERK',7788,SYSDATE,100,NULL,20,'');
+
+Obs.:
+- Nu este specificat daca procedura va avea sau nu parametri, voi decideti.
+- Daca nu folositi variabila cursor restrictiva in procedura, se scad 0.75p.
+- Daca nu folositi procedura cu variabila cursor restrictiva, dar implementati cu succes regula cu alt fel de trigger, problema se noteaza cu 0.75p.
+
+CREATE OR REPLACE TRIGGER trig
+    BEFORE INSERT OR UPDATE OR DELETE ON emp
+DECLARE
+
+BEGIN
+END trig;
+/
+

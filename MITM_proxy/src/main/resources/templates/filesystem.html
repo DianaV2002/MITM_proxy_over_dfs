@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Secure File Storage System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover {
+            border-color: #0d6efd;
+            background: #f1f3f5;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-item:hover {
+            background: #f8f9fa;
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: flex-end;
+        }
+        .file-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .performance-chart {
+            margin-top: 20px;
+            height: 300px;
+        }
+        .metric-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .metric-box:hover {
+            transform: translateY(-5px);
+        }
+        .metric-box h6 {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .metric-box p {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #2c3e50;
+            margin: 0;
+        }
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .metric-change {
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .metric-change.positive {
+            color: #28a745;
+        }
+        .metric-change.negative {
+            color: #dc3545;
+        }
+        .operation-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            z-index: 1000;
+            display: none;
+        }
+        .operation-status.show {
+            display: block;
+        }
+        .operation-progress {
+            width: 100%;
+            height: 4px;
+            background: #444;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .operation-progress-bar {
+            height: 100%;
+            background: #0d6efd;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .ransomware-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .ransomware-alert.show {
+            display: block;
+        }
+        .file-item.ransomware-affected {
+            border-left: 4px solid #dc3545;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        .file-item.ransomware-affected .file-name {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .file-status {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .file-status i {
+            margin-right: 5px;
+        }
+        .file-status.warning {
+            color: #dc3545;
+        }
+        .file-status.warning i {
+            color: #dc3545;
+        }
+        .ransomware-banner {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .ransomware-banner.show {
+            display: block;
+        }
+        .ransomware-banner i {
+            margin-right: 10px;
+        }
+        .file-actions .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .file-actions .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Secure File Storage System</h1>
+        
+        <!-- Ransomware Warning Banner -->
+        <div class="ransomware-banner" id="ransomwareBanner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>WARNING:</strong> Some files may be affected by ransomware. Please review the highlighted files below.
+        </div>
+        
+        <!-- File Upload Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Upload Files</h5>
+            </div>
+            <div class="card-body">
+                <div class="drop-zone" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                    <h5>Drag and drop files here</h5>
+                    <p class="text-muted">or click to select files</p>
+                    <input type="file" id="fileInput" multiple style="display: none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Summary -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Performance Summary</h5>
+                <div>
+                    <a href="/files/management" class="btn btn-sm btn-outline-info me-2">
+                        <i class="fas fa-database"></i> Storage Management
+                    </a>
+                    <button class="btn btn-sm btn-outline-primary me-2" onclick="generateReport()">
+                        <i class="fas fa-file-alt"></i> Generate Report
+                    </button>
+                    <a href="/visualization" class="btn btn-sm btn-outline-success" target="_blank">
+                        <i class="fas fa-chart-line"></i> View Details
+                    </a>    
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Storage Service Info -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="metric-card">
+                            <h6>Storage Service</h6>
+                            <p class="metric-value" th:text="${storageType}">Unknown</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="metric-card">
+                            <h6>Total Files</h6>
+                            <p class="metric-value" th:text="${fileCount}">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Operations</h6>
+                            <p class="metric-value" id="totalOperations">0</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Throughput</h6>
+                            <p class="metric-value" id="throughput">0.00 ops/s</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <h6>Average Time</h6>
+                            <p class="metric-value" th:text="${averageTime} + ' ms'">0.00 ms</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h6>Data Processed</h6>
+                            <p class="metric-value" id="dataProcessed">0 KB</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <h6>Success Rate</h6>
+                            <p class="metric-value" th:text="${successRate} + '%'">0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File List Section -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Files</h5>
+                <div>
+                    <span class="badge bg-danger me-2" id="ransomwareBadge" style="display: none;">
+                        <i class="fas fa-shield-alt"></i> Ransomware Detected
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshFileList()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="file-list" id="fileList">
+                    <!-- Files will be listed here -->
+                </div>
+            </div>
+        </div>
+        <!-- Real-time Operation Status -->
+        <div class="operation-status" id="operationStatus">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                <span id="operationMessage">Processing...</span>
+            </div>
+            <div class="operation-progress">
+                <div class="operation-progress-bar" id="operationProgress"></div>
+            </div>
+        </div>
+
+        <!-- Ransomware Alert -->
+        <div class="ransomware-alert" id="ransomwareAlert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>RANSOMWARE ATTACK DETECTED!</strong>
+                    <p class="mb-0" id="ransomwareMessage">Multiple encryption failures detected. System may be under attack.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this file?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let performanceChart;
+        let fileToDelete = null;
+        let pollingInterval;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        // Initialize metrics polling
+        function initializeMetricsPolling() {
+            pollingInterval = setInterval(() => {
+                fetch('/files/api/performance')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data) {
+                            console.warn('No metrics data received');
+                            return;
+                        }
+                        
+                        // Update essential metrics
+                        updateMetrics(data);
+                    })
+                    .catch(error => {
+                        console.error('Error polling metrics:', error);
+                    });
+            }, 5000);
+        }
+
+        // Update individual metric with animation and proper null handling
+        function updateMetricValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // Format bytes to human readable format
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Update performance chart with new data
+        function updatePerformanceChart(data) {
+            if (!window.performanceChart) return;
+            
+            const chart = window.performanceChart;
+            const labels = chart.data.labels;
+            const dataset = chart.data.datasets[0].data;
+            
+            // Add new data point
+            const timestamp = new Date().toLocaleTimeString();
+            labels.push(timestamp);
+            dataset.push(parseFloat(data.throughput_ops || 0));
+            
+            // Keep only last 10 data points
+            if (labels.length > 10) {
+                labels.shift();
+                dataset.shift();
+            }
+            
+            chart.update();
+        }
+
+        // Show operation status with progress
+        function showOperationStatus(message, progress) {
+            const status = document.getElementById('operationStatus');
+            const messageEl = document.getElementById('operationMessage');
+            const progressBar = document.getElementById('operationProgress');
+            
+            messageEl.textContent = message;
+            progressBar.style.width = progress + '%';
+            status.classList.add('show');
+        }
+
+        // Hide operation status
+        function hideOperationStatus() {
+            const status = document.getElementById('operationStatus');
+            status.classList.remove('show');
+        }
+
+        // Handle file upload with better error handling
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                showOperationStatus(`Uploading ${file.name}...`, 0);
+
+                fetch('/files/api/files/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Upload failed');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showOperationStatus(`Successfully uploaded ${file.name}`, 100);
+                    setTimeout(hideOperationStatus, 2000);
+                    refreshFileList();
+                })
+                .catch(error => {
+                    console.error('Upload error:', error);
+                    showOperationStatus(`Failed to upload ${file.name}: ${error.message}`, 0);
+                    setTimeout(hideOperationStatus, 3000);
+                });
+            });
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDropZone();
+            refreshFileList();
+            initializePerformanceChart();
+            initializeMetricsPolling();
+        });
+
+        // Drop zone functionality
+        function initializeDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#0d6efd';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = '#ccc';
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#ccc';
+                handleFiles(e.dataTransfer.files);
+            });
+            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        }
+
+        // Refresh file list with error handling
+        function refreshFileList() {
+            const fileList = document.getElementById('fileList');
+            const ransomwareBanner = document.getElementById('ransomwareBanner');
+            fileList.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+            
+            fetch('/files/api/files', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(files => {
+                if (!Array.isArray(files)) {
+                    throw new Error('Invalid response format: expected array of files');
+                }
+                
+                // Check for ransomware affected files
+                const hasRansomwareFiles = files.some(file => file.ransomwareAffected);
+                ransomwareBanner.classList.toggle('show', hasRansomwareFiles);
+                
+                fileList.innerHTML = files.map(file => `
+                    <div class="file-item ${file.ransomwareAffected ? 'ransomware-affected' : ''}">
+                        <div class="file-info">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${formatBytes(file.size)}</span>
+                            <span class="file-date">${new Date(file.lastModified).toLocaleString()}</span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewFile('${file.name}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="downloadFile('${file.name}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${file.name}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                        ${file.ransomwareAffected ? `
+                            <div class="file-status warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>File may be affected by ransomware</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            })
+            .catch(error => {
+                console.error('Error loading files:', error);
+                fileList.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Error loading files</h5>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="refreshFileList()">Retry</button>
+                    </div>
+                `;
+            });
+        }
+
+        // File operations
+        function downloadFile(fileName) {
+            window.location.href = `/files/api/files/download/${encodeURIComponent(fileName)}`;
+        }
+
+        function viewFile(fileName) {
+            window.open(`/files/api/files/view/${encodeURIComponent(fileName)}`, '_blank');
+        }
+
+        function deleteFile(fileName) {
+            fileToDelete = fileName;
+            deleteModal.show();
+        }
+
+        function confirmDelete() {
+            if (fileToDelete) {
+                fetch(`/files/api/files/${fileToDelete}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        refreshFileList();
+                        deleteModal.hide();
+                    } else {
+                        alert('Failed to delete file: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting file: ' + error.message);
+                });
+            }
+        }
+
+        // Show ransomware alert
+        function showRansomwareAlert(ransomwareData) {
+            const alert = document.getElementById('ransomwareAlert');
+            const message = document.getElementById('ransomwareMessage');
+            const badge = document.getElementById('ransomwareBadge');
+            const banner = document.getElementById('ransomwareBanner');
+            
+            message.textContent = `Multiple encryption failures detected (${ransomwareData.detectionCount} times). System may be under attack.`;
+            alert.classList.add('show');
+            badge.style.display = 'inline-block';
+            banner.classList.add('show');
+            
+            // Update file list to mark affected files
+            updateFileListWithRansomwareStatus(ransomwareData.affectedFiles);
+        }
+
+        // Update file list with ransomware status
+        function updateFileListWithRansomwareStatus(affectedFiles) {
+            const fileItems = document.querySelectorAll('.file-item');
+            const banner = document.getElementById('ransomwareBanner');
+            
+            fileItems.forEach(item => {
+                const fileName = item.querySelector('.file-name').textContent;
+                if (affectedFiles.includes(fileName)) {
+                    item.classList.add('ransomware-affected');
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'file-status warning';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Potentially affected by ransomware';
+                    item.appendChild(statusDiv);
+                }
+            });
+            
+            banner.classList.add('show');
+        }
+
+        // Report generation
+        function generateReport() {
+            fetch('/api/metrics/report')
+                .then(response => response.json())
+                .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `metrics_report_${new Date().toISOString()}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => console.error('Error generating report:', error));
+        }
+
+        function updateMetrics(data = {}) {
+            // Update total operations
+            updateMetricValue('totalOperations', data.total_operations || 0);
+            
+            // Update throughput
+            const throughput = parseFloat(data.throughput_ops || 0);
+            updateMetricValue('throughput', throughput.toFixed(2) + ' ops/s');
+            
+            // Update success rate
+            const successRate = parseFloat(data.success_rate || 0);
+            updateMetricValue('successRate', successRate.toFixed(2) + '%');
+            
+            // Update data processed
+            const dataProcessed = parseFloat(data.data_processed || 0);
+            updateMetricValue('dataProcessed', dataProcessed.toFixed(2) + ' KB');
+            
+            // Update system metrics
+            updateMetricValue('cpuUsage', (parseFloat(data.cpu_usage || 0)).toFixed(2) + '%');
+            updateMetricValue('memoryUsage', (parseFloat(data.memory_usage || 0)).toFixed(2) + '%');
+            updateMetricValue('nonHeapMemory', (parseFloat(data.non_heap_memory_mb || 0)).toFixed(2) + ' MB');
+            
+            // Update charts
+            updatePerformanceChart(data);
+        }
+
+        // Add auto-refresh for metrics
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial metrics update
+            updateMetrics();
+            
+            // Set up auto-refresh every 5 seconds
+            setInterval(function() {
+                fetch('/files/api/performance')
+                    .then(response => response.json())
+                    .then(data => updateMetrics(data))
+                    .catch(error => console.error('Error updating metrics:', error));
+            }, 5000);
+        });
+
+        function initializePerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            window.performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Throughput (ops/s)',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+</html> 

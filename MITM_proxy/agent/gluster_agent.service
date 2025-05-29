@@ -1,0 +1,15 @@
+[Unit]
+Description=GlusterFS Security Agent
+After=network.target glusterd.service
+Requires=glusterd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gluster_agent
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target 

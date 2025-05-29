@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Proxy Performance Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .metric-card {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Performance Visualization</h5>
+                <div>
+                    <a href="/files" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Filesystem
+                    </a>
+                    <button class="btn btn-sm btn-outline-success" onclick="generateReport()">
+                        <i class="fas fa-file-alt"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Proxy Performance Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Proxy Latency</div>
+                            <div class="metric-value" id="proxyLatency">0.00 ms</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Request Processing Time</div>
+                            <div class="metric-value" id="requestTime">0.00 ms</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Response Processing Time</div>
+                            <div class="metric-value" id="responseTime">0.00 ms</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Encryption Performance -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Total Proxy Overhead</div>
+                            <div class="metric-value" id="proxyOverhead">0.00%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Encryption Throughput</div>
+                            <div class="metric-value" id="encryptionThroughput">0.00 MB/s</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Decryption Throughput</div>
+                            <div class="metric-value" id="decryptionThroughput">0.00 MB/s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operation Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Total Operations</div>
+                            <div class="metric-value" id="totalOperations">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Average Time</div>
+                            <div class="metric-value" id="averageTime">0.00 ms</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Success Rate</div>
+                            <div class="metric-value" id="successRate">0.00%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Data Processed</div>
+                            <div class="metric-value" id="dataProcessed">0.00 KB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Throughput Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Throughput</div>
+                            <div class="metric-value" id="throughput">0.00 ops/s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">CPU Usage</div>
+                            <div class="metric-value" id="cpuUsage">0.00%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Memory Usage</div>
+                            <div class="metric-value" id="memoryUsage">0.00%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card bg-light">
+                            <div class="metric-label">Non-Heap Memory</div>
+                            <div class="metric-value" id="nonHeapMemory">0.00 MB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="encryptionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="proxyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let encryptionChart = null;
+        let proxyChart = null;
+        let encryptionData = [];
+        let proxyOverheadData = [];
+        let timestamps = [];
+
+        function updateMetricValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function updateMetrics(data) {
+            // Update proxy performance metrics
+            updateMetricValue('proxyLatency', (parseFloat(data.proxy_latency || 0)).toFixed(2) + ' ms');
+            updateMetricValue('requestTime', (parseFloat(data.request_time || 0)).toFixed(2) + ' ms');
+            updateMetricValue('responseTime', (parseFloat(data.response_time || 0)).toFixed(2) + ' ms');
+            updateMetricValue('proxyOverhead', (parseFloat(data.proxy_overhead || 0)).toFixed(2) + '%');
+            
+            // Update encryption performance metrics
+            updateMetricValue('encryptionThroughput', (parseFloat(data.encryption_throughput || 0)).toFixed(2) + ' MB/s');
+            updateMetricValue('decryptionThroughput', (parseFloat(data.decryption_throughput || 0)).toFixed(2) + ' MB/s');
+            
+            // Update operation metrics
+            updateMetricValue('totalOperations', data.total_operations || 0);
+            updateMetricValue('averageTime', (parseFloat(data.average_time || 0)).toFixed(2) + ' ms');
+            updateMetricValue('successRate', (parseFloat(data.success_rate || 0)).toFixed(2) + '%');
+            updateMetricValue('dataProcessed', (parseFloat(data.data_processed || 0)).toFixed(2) + ' KB');
+            
+            // Update throughput
+            updateMetricValue('throughput', (parseFloat(data.throughput || 0)).toFixed(2) + ' ops/s');
+            
+            // Update system metrics
+            updateMetricValue('cpuUsage', (parseFloat(data.cpu_usage || 0)).toFixed(2) + '%');
+            updateMetricValue('memoryUsage', (parseFloat(data.memory_usage || 0)).toFixed(2) + '%');
+            updateMetricValue('nonHeapMemory', (parseFloat(data.non_heap_memory || 0)).toFixed(2) + ' MB');
+            
+            // Update charts
+            updateCharts(data);
+        }
+
+        function updateCharts(data) {
+            const now = new Date();
+            timestamps.push(now.toLocaleTimeString());
+            
+            // Add new data points
+            encryptionData.push(parseFloat(data.encryption_throughput || 0));
+            proxyOverheadData.push(parseFloat(data.proxy_overhead || 0));
+            
+            // Keep only last 10 data points
+            if (timestamps.length > 10) {
+                timestamps.shift();
+                encryptionData.shift();
+                proxyOverheadData.shift();
+            }
+            
+            if (encryptionChart) {
+                encryptionChart.destroy();
+            }
+            if (proxyChart) {
+                proxyChart.destroy();
+            }
+
+            encryptionChart = new Chart(document.getElementById('encryptionChart'), {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Encryption Throughput (MB/s)',
+                        data: encryptionData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            proxyChart = new Chart(document.getElementById('proxyChart'), {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Proxy Overhead (%)',
+                        data: proxyOverheadData,
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function generateReport() {
+            fetch('/files/api/report')
+                .then(response => response.json())
+                .then(data => {
+                    const reportWindow = window.open('', '_blank');
+                    reportWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Performance Report</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; margin: 20px; }
+                                    table { border-collapse: collapse; width: 100%; }
+                                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                    th { background-color: #f2f2f2; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Performance Report</h1>
+                                <p>Generated on: ${new Date().toLocaleString()}</p>
+                                <h2>Proxy Performance</h2>
+                                <table>
+                                    <tr><th>Metric</th><th>Value</th></tr>
+                                    <tr><td>Proxy Latency</td><td>${data.proxy_latency || 0} ms</td></tr>
+                                    <tr><td>Request Processing Time</td><td>${data.request_time || 0} ms</td></tr>
+                                    <tr><td>Response Processing Time</td><td>${data.response_time || 0} ms</td></tr>
+                                    <tr><td>Proxy Overhead</td><td>${data.proxy_overhead || 0}%</td></tr>
+                                </table>
+                                <h2>Encryption Performance</h2>
+                                <table>
+                                    <tr><th>Metric</th><th>Value</th></tr>
+                                    <tr><td>Encryption Throughput</td><td>${data.encryption_throughput || 0} MB/s</td></tr>
+                                    <tr><td>Decryption Throughput</td><td>${data.decryption_throughput || 0} MB/s</td></tr>
+                                </table>
+                                <h2>Operation Metrics</h2>
+                                <table>
+                                    <tr><th>Metric</th><th>Value</th></tr>
+                                    <tr><td>Total Operations</td><td>${data.total_operations || 0}</td></tr>
+                                    <tr><td>Average Time</td><td>${data.average_time || 0} ms</td></tr>
+                                    <tr><td>Success Rate</td><td>${data.success_rate || 0}%</td></tr>
+                                    <tr><td>Data Processed</td><td>${data.data_processed || 0} KB</td></tr>
+                                </table>
+                                <h2>Throughput Metrics</h2>
+                                <table>
+                                    <tr><th>Metric</th><th>Value</th></tr>
+                                    <tr><td>Throughput</td><td>${data.throughput || 0} ops/s</td></tr>
+                                </table>
+                                <h2>System Metrics</h2>
+                                <table>
+                                    <tr><th>Metric</th><th>Value</th></tr>
+                                    <tr><td>CPU Usage</td><td>${data.cpu_usage || 0}%</td></tr>
+                                    <tr><td>Memory Usage</td><td>${data.memory_usage || 0}%</td></tr>
+                                    <tr><td>Non-Heap Memory</td><td>${data.non_heap_memory || 0} MB</td></tr>
+                                </table>
+                            </body>
+                        </html>
+                    `);
+                    reportWindow.document.close();
+                })
+                .catch(error => console.error('Error generating report:', error));
+        }
+
+        // Add auto-refresh for metrics
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial metrics update
+            fetch('/files/api/performance')
+                .then(response => response.json())
+                .then(data => updateMetrics(data))
+                .catch(error => console.error('Error updating metrics:', error));
+            
+            // Set up auto-refresh every 5 seconds
+            setInterval(function() {
+                fetch('/files/api/performance')
+                    .then(response => response.json())
+                    .then(data => updateMetrics(data))
+                    .catch(error => console.error('Error updating metrics:', error));
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
